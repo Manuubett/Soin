@@ -7,6 +7,9 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<!-- jsPDF for proper text-based PDF export (not screenshot) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 /* ── Reset ── */
@@ -120,13 +123,6 @@ body{
 .tb-btn.primary:hover{background:var(--mint);}
 .tb-btn.gold{background:var(--gold);border-color:var(--gold);color:#fff;}
 .tb-btn.gold:hover{opacity:.88;}
-.tb-back{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:12px;color:var(--sage);cursor:pointer;
-  background:none;border:none;font-family:var(--sans);
-  padding:4px 0;transition:color .15s;
-}
-.tb-back:hover{color:#fff;}
 .admin-chip{
   display:flex;align-items:center;gap:8px;
   background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
@@ -378,7 +374,7 @@ body{
   color:var(--muted2);font-size:13px;
 }
 
-/* ── Print report footer ── */
+/* ── Report footer ── */
 .report-footer{
   margin-top:40px;padding:16px 24px;
   background:#fff;border:1px solid var(--border);border-radius:var(--r2);
@@ -406,49 +402,21 @@ body{
 .toast.success{background:var(--leaf);}
 .toast.error{background:var(--red);}
 
-/* ══════════════════════════════════════════════
-   PRINT STYLES
-══════════════════════════════════════════════ */
-@media print{
-  #loginWall,#screenToolbar,.no-print{display:none!important;}
-  body{background:#fff!important;color:#000!important;font-size:11px;}
-  .page{padding:0!important;max-width:100%!important;}
-  .report-header{
-    background:var(--forest)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;
-    border-radius:0!important;margin-bottom:16px!important;padding:20px 24px!important;
-  }
-  .rh-stamp{display:none;}
-  .kpi-strip{grid-template-columns:repeat(6,1fr)!important;gap:6px!important;margin-bottom:14px!important;}
-  .kpi{padding:10px 12px!important;border-radius:4px!important;}
-  .kpi-val{font-size:20px!important;}
-  .ward-heatmap{grid-template-columns:repeat(4,1fr)!important;gap:6px!important;}
-  .wh-card{padding:8px 10px!important;border-radius:4px!important;}
-  .card{border:1px solid #ccc!important;border-radius:4px!important;break-inside:avoid;}
-  .card-head{background:#f5f5f5!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .sec-head{margin-top:16px!important;margin-bottom:8px!important;}
-  .grid-2,.grid-3{grid-template-columns:1fr 1fr!important;gap:8px!important;}
-  .const-cards{grid-template-columns:repeat(4,1fr)!important;gap:8px!important;}
-  .cc-head{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .priority-list .pr-item{background:#f9f9f9!important;padding:8px 10px!important;}
-  .report-footer{
-    border-top:2px solid var(--forest)!important;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact;
-    border-radius:0!important;margin-top:20px!important;
-  }
-  table{page-break-inside:auto;}
-  tr{page-break-inside:avoid;page-break-after:auto;}
-  thead{display:table-header-group;}
-  .hbar-fill{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .wh-bar-fill{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .kpi::before{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-
-  @page{margin:14mm 12mm;size:A4 portrait;}
-  @page:first{margin-top:6mm;}
-
-  /* Print page break hints */
-  .print-break-before{page-break-before:always;}
-  .no-break{page-break-inside:avoid;}
+/* PDF progress overlay */
+#pdfOverlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:9998;align-items:center;justify-content:center;flex-direction:column;gap:16px;
 }
+#pdfOverlay.show{display:flex;}
+.pdf-modal{
+  background:#fff;border-radius:16px;padding:32px 40px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.3);min-width:280px;
+}
+.pdf-modal-icon{font-size:32px;margin-bottom:12px;}
+.pdf-modal-title{font-weight:700;font-size:16px;color:var(--forest);margin-bottom:6px;}
+.pdf-modal-sub{font-size:12px;color:var(--muted);}
+.pdf-prog-track{height:6px;background:var(--warm);border-radius:3px;overflow:hidden;margin-top:16px;}
+.pdf-prog-fill{height:100%;border-radius:3px;background:var(--leaf);transition:width .4s;}
 </style>
 </head>
 <body>
@@ -473,8 +441,18 @@ body{
   </div>
 </div>
 
-<!-- SCREEN TOOLBAR (hidden during print) -->
-<div id="screenToolbar" class="no-print">
+<!-- PDF Progress Overlay -->
+<div id="pdfOverlay">
+  <div class="pdf-modal">
+    <div class="pdf-modal-icon">📄</div>
+    <div class="pdf-modal-title">Generating PDF Report</div>
+    <div class="pdf-modal-sub" id="pdfStatus">Building tables…</div>
+    <div class="pdf-prog-track"><div class="pdf-prog-fill" id="pdfProg" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- SCREEN TOOLBAR -->
+<div id="screenToolbar">
   <div class="tb-brand">
     <div class="tb-icon">🗺️</div>
     <div>
@@ -484,9 +462,9 @@ body{
   </div>
   <div class="tb-actions">
     <button class="tb-btn" onclick="goBack()">← Back to Admin</button>
-    <button class="tb-btn" onclick="refreshData()">↻ Refresh</button>
+    <button class="tb-btn" onclick="location.reload()">↻ Refresh</button>
     <button class="tb-btn" onclick="exportCSV()">⬇ Export CSV</button>
-    <button class="tb-btn gold" onclick="window.print()">🖨 Print / Save PDF</button>
+    <button class="tb-btn gold" onclick="exportPDF()">📄 Download PDF</button>
     <div class="admin-chip" id="adminChip" style="display:none;">
       <img class="admin-avatar" id="adminAvatar" src="" alt="">
       <span class="admin-name" id="adminName"></span>
@@ -552,8 +530,8 @@ body{
     </div>
   </div>
 
-  <!-- Coverage bars + gap table side by side -->
-  <div class="grid-2 print-break-before">
+  <!-- Coverage bars + gap table -->
+  <div class="grid-2">
     <div class="card">
       <div class="card-head">
         <div><div class="card-title">📊 Submissions by ward</div><div class="card-sub">Top 20 — least covered first</div></div>
@@ -577,7 +555,7 @@ body{
   </div>
 
   <!-- Polling Stations -->
-  <div class="sec-head print-break-before"><span class="sec-label">Polling Station Coverage</span></div>
+  <div class="sec-head"><span class="sec-label">Polling Station Coverage</span></div>
   <div class="card" style="margin-bottom:20px;">
     <div class="card-head">
       <div><div class="card-title">🏫 Station-level visit log</div><div class="card-sub">All submissions mapped to polling station</div></div>
@@ -592,7 +570,7 @@ body{
   </div>
 
   <!-- Next-visit priorities -->
-  <div class="sec-head print-break-before"><span class="sec-label">Next-Visit Field Priorities</span></div>
+  <div class="sec-head"><span class="sec-label">Next-Visit Field Priorities</span></div>
   <div class="grid-2" style="margin-bottom:20px;">
     <div class="card">
       <div class="card-head"><div><div class="card-title">🎯 Top priority wards</div><div class="card-sub">Zero or fewest submissions — deploy here first</div></div></div>
@@ -667,7 +645,7 @@ auth.onAuthStateChanged(async user=>{
   const email=(user.email||'').toLowerCase();
   if(!ADMIN_EMAILS.includes(email)){
     const err=document.getElementById('lwErr');
-    err.textContent='⛔ Access denied for '+email;err.style.display='block';
+    err.textContent='Access denied for '+email;err.style.display='block';
     document.getElementById('lwBtn').disabled=false;
     document.getElementById('lwSpin').style.display='none';
     document.getElementById('lwTxt').textContent='Sign in with Google';
@@ -728,10 +706,9 @@ async function loadData(){
     catch(e){snap=await db.collection('responses').get();}
     allDocs=snap.docs.map(d=>({_id:d.id,...d.data()}));
     processData();
-    toast('✓ Loaded '+allDocs.length+' submissions','success');
+    toast('Loaded '+allDocs.length+' submissions','success');
   }catch(e){
     toast('Error: '+e.message,'error');
-    // Use demo data so page still renders
     useDemoData();
   }
 }
@@ -761,7 +738,6 @@ function useDemoData(){
 }
 
 function processData(){
-  // Build ward map
   wardMap={};
   ALL_WARDS.forEach(w=>{
     wardMap[w.ward]={
@@ -821,7 +797,6 @@ function renderKPIs(){
 /* ── Constituency cards ── */
 function renderConstCards(){
   const consts=['Manyatta','Runyenjes','Mbeere South','Mbeere North'];
-  const totalMax=Math.max(...consts.map(c=>Object.values(wardMap).filter(w=>w.constituency===c).reduce((s,w)=>s+w.submissions,0)),1);
   document.getElementById('constCards').innerHTML=consts.map(c=>{
     const wards=Object.values(wardMap).filter(w=>w.constituency===c);
     const total=wards.reduce((s,w)=>s+w.submissions,0);
@@ -830,7 +805,7 @@ function renderConstCards(){
     const stations=wards.reduce((s,w)=>s+w.stations.size,0);
     const pct=Math.round(visited/wards.length*100);
     const theme=CONST_THEMES[c]||'th-forest';
-    return`<div class="cc no-break">
+    return`<div class="cc">
       <div class="cc-head ${theme}">
         <div class="cc-name">${esc(c)}</div>
         <div class="cc-count">${total}</div>
@@ -858,7 +833,7 @@ function renderWardHeatmap(){
     else if(w.submissions>=FULL_THRESHOLD){cls='wh-full';fillCls='wh-fill-full';badgeCls='wh-badge-full';badgeLbl='Covered';}
     else{cls='wh-low';fillCls='wh-fill-low';badgeCls='wh-badge-low';badgeLbl='Partial';}
     const last=w.lastVisit?w.lastVisit.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Never';
-    return`<div class="wh-card ${cls} no-break">
+    return`<div class="wh-card ${cls}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">
         <div class="wh-name">${esc(ward)}</div>
         <span class="wh-badge ${badgeCls}">${badgeLbl}</span>
@@ -897,21 +872,20 @@ function renderGapTable(){
   document.getElementById('gapBadge').textContent=(none.length+partial.length)+' gaps';
   document.getElementById('gapBadge').className='card-badge '+(none.length>0?'cb-red':'cb-amber');
   if(!all.length){
-    document.getElementById('gapBody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--leaf);font-weight:600;">✅ All wards covered!</td></tr>';
+    document.getElementById('gapBody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--leaf);font-weight:600;">All wards covered!</td></tr>';
     return;
   }
   document.getElementById('gapBody').innerHTML=all.map((w,i)=>{
     const isNone=w.submissions===0;
     const need=Math.max(0,FULL_THRESHOLD-w.submissions);
-    const sevCls=isNone?'sev-high':'sev-med';
-    const statusPill=isNone?'<span class="sp sp-n">Not visited</span>':'<span class="sp sp-p">Partial</span>';
+    const statusTxt=isNone?'Not visited':'Partial';
     return`<tr>
-      <td><span class="sev-dot ${sevCls}"></span>${i+1}</td>
+      <td><span class="sev-dot ${isNone?'sev-high':'sev-med'}"></span>${i+1}</td>
       <td class="main">${esc(w.ward)}</td>
       <td>${esc(w.constituency)}</td>
       <td style="font-family:var(--mono);font-weight:600;color:${isNone?'var(--red)':'var(--amber)'};">${w.submissions}</td>
       <td style="font-family:var(--mono);color:var(--muted);">${need} more</td>
-      <td>${statusPill}</td>
+      <td><span class="sp ${isNone?'sp-n':'sp-p'}">${statusTxt}</span></td>
     </tr>`;
   }).join('');
 }
@@ -937,15 +911,15 @@ function renderStationsTable(){
     return;
   }
   document.getElementById('stationsBody').innerHTML=stations.map((s,i)=>{
-    const pill=s.count>=3?'<span class="sp sp-v">Visited</span>':s.count>0?'<span class="sp sp-p">Partial</span>':'<span class="sp sp-n">Pending</span>';
+    const statusTxt=s.count>=3?'Visited':s.count>0?'Partial':'Pending';
     const last=s.lastVisit?s.lastVisit.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'—';
     return`<tr>
       <td style="color:var(--muted2);">${i+1}</td>
       <td class="main">${esc(s.station)}</td>
       <td>${esc(s.ward)}</td>
       <td>${esc(s.constituency)}</td>
-      <td>${pill}</td>
-      <td style="font-family:var(--mono);font-weight:600;color:${s.count>0?'var(--leaf)':'var(--muted2)'};">${s.count}</td>
+      <td><span class="sp ${s.count>=3?'sp-v':s.count>0?'sp-p':'sp-n'}">${statusTxt}</span></td>
+      <td style="font-family:var(--mono);font-weight:600;">${s.count}</td>
       <td style="font-family:var(--mono);">${s.researchers.size}</td>
       <td style="font-size:10px;color:var(--muted2);">${last}</td>
     </tr>`;
@@ -962,9 +936,9 @@ function renderPriorities(){
   document.getElementById('priorityList').innerHTML=sorted.map((w,i)=>{
     const isNone=w.submissions===0;
     const need=Math.max(0,FULL_THRESHOLD-w.submissions);
-    const action=isNone?'Deploy enumerator immediately — zero visits recorded.':'Send 1–2 enumerators for top-up. '+need+' more submission'+(need!==1?'s':'')+' needed.';
+    const action=isNone?'Deploy enumerator immediately — zero visits recorded.':'Send 1-2 enumerators for top-up. '+need+' more submission'+(need!==1?'s':'')+' needed.';
     const stns=[...w.stations].slice(0,3).map(s=>`<span class="pr-pill">${esc(s)}</span>`).join('');
-    return`<div class="pr-item no-break">
+    return`<div class="pr-item">
       <div class="pr-rank ${rankCls[i]}">${i+1}</div>
       <div class="pr-body">
         <div class="pr-title">${esc(w.ward)}</div>
@@ -1010,22 +984,514 @@ function renderResActivity(){
 }
 
 /* ══════════════════════════════════════════════
+   PDF EXPORT — TEXT-BASED (not screenshot)
+══════════════════════════════════════════════ */
+async function exportPDF(){
+  const overlay=document.getElementById('pdfOverlay');
+  const status=document.getElementById('pdfStatus');
+  const prog=document.getElementById('pdfProg');
+
+  overlay.classList.add('show');
+  const setProgress=(pct,msg)=>{prog.style.width=pct+'%';status.textContent=msg;};
+
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const PAGE_W=210, PAGE_H=297, ML=14, MR=14, CW=PAGE_W-ML-MR;
+    const now=new Date();
+    const adminName=document.getElementById('adminName').textContent||'Admin';
+    const reportId='ECS-COV-'+Date.now();
+
+    /* ─ colour helpers ─ */
+    const C={
+      forest:[26,74,42],
+      leaf:[45,122,69],
+      mint:[76,175,120],
+      gold:[200,150,62],
+      red:[184,50,50],
+      amber:[200,127,42],
+      blue:[26,92,168],
+      purple:[74,62,170],
+      ink:[12,26,14],
+      muted:[107,96,85],
+      muted2:[154,144,136],
+      cream:[247,244,238],
+      warm:[237,232,223],
+      white:[255,255,255],
+      border:[214,207,194],
+    };
+
+    let y=0; // current Y cursor
+    let pageNum=1;
+
+    function addPage(){
+      doc.addPage();
+      pageNum++;
+      y=14;
+      addPageFooter();
+    }
+
+    function addPageFooter(){
+      doc.setFontSize(7);
+      doc.setTextColor(...C.muted2);
+      doc.text('ECS-2026 Coverage Intelligence Report  |  CONFIDENTIAL  |  Page '+pageNum,PAGE_W/2,PAGE_H-6,{align:'center'});
+      doc.text(reportId,PAGE_W-MR,PAGE_H-6,{align:'right'});
+    }
+
+    function checkY(needed=10){
+      if(y+needed>PAGE_H-14)addPage();
+    }
+
+    /* ══ PAGE 1 — COVER HEADER ══ */
+    setProgress(5,'Building cover page…');
+
+    // Dark green header block
+    doc.setFillColor(...C.forest);
+    doc.rect(0,0,PAGE_W,52,'F');
+
+    // Eyebrow
+    doc.setFontSize(7);
+    doc.setTextColor(...C.mint);
+    doc.setFont('helvetica','normal');
+    doc.text('EMBU COUNTY SOCIAL STUDY  ·  ECS-2026  ·  FIELD OPERATIONS',ML,12);
+
+    // Title
+    doc.setFontSize(22);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.white);
+    doc.text('Coverage Intelligence Report',ML,24);
+
+    // Subtitle line
+    doc.setFontSize(9);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(...C.mint);
+    doc.text('Generated: '+now.toLocaleString()+'   ·   Admin: '+adminName,ML,32);
+
+    // Pills (inline text simulation)
+    doc.setFontSize(7);
+    doc.setTextColor(220,220,220);
+    doc.text('GPS-verified submissions   ·   20 wards · 4 constituencies   ·   Polling station tracking   ·   Uncovered area detection',ML,40);
+
+    // Report ID stamp
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.gold);
+    doc.text(now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase(),PAGE_W-MR,20,{align:'right'});
+    doc.setFontSize(7);
+    doc.setTextColor(...C.mint);
+    doc.text('LIVE DATA',PAGE_W-MR,28,{align:'right'});
+
+    y=58;
+    addPageFooter();
+
+    /* ══ KPI SUMMARY TABLE ══ */
+    setProgress(15,'Writing KPI summary…');
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.muted);
+    doc.text('OVERVIEW', ML, y);
+    doc.setDrawColor(...C.border);
+    doc.line(ML+18, y-0.5, PAGE_W-MR, y-0.5);
+    y+=5;
+
+    const vals=Object.values(wardMap);
+    const kpiData=[
+      ['Total Submissions', String(allDocs.length), 'All field responses collected'],
+      ['Wards Visited',     String(vals.filter(w=>w.submissions>0).length)+' / 20', 'At least one submission'],
+      ['Fully Covered',     String(vals.filter(w=>w.submissions>=FULL_THRESHOLD).length), '5 or more submissions'],
+      ['Partial Coverage',  String(vals.filter(w=>w.submissions>0&&w.submissions<FULL_THRESHOLD).length), '1–4 submissions'],
+      ['Not Visited',       String(vals.filter(w=>w.submissions===0).length), 'Zero submissions recorded'],
+      ['Coverage Rate',     Math.round(vals.filter(w=>w.submissions>0).length/vals.length*100)+'%', 'Wards with at least 1 visit'],
+      ['Unique Stations',   String(vals.reduce((s,w)=>s+w.stations.size,0)), 'Polling stations recorded'],
+      ['Active Researchers',String(new Set(allDocs.map(d=>d._researcher).filter(Boolean)).size), 'Unique enumerators'],
+    ];
+
+    doc.autoTable({
+      startY:y,
+      head:[['Metric','Value','Notes']],
+      body:kpiData,
+      margin:{left:ML,right:MR},
+      styles:{fontSize:9,cellPadding:3,textColor:C.ink},
+      headStyles:{fillColor:C.forest,textColor:C.white,fontStyle:'bold',fontSize:8},
+      alternateRowStyles:{fillColor:[247,244,238]},
+      columnStyles:{
+        0:{fontStyle:'bold',cellWidth:55},
+        1:{fontStyle:'bold',cellWidth:30,halign:'center'},
+        2:{cellWidth:'auto'},
+      },
+      didDrawPage:()=>addPageFooter(),
+    });
+    y=doc.lastAutoTable.finalY+8;
+
+    /* ══ CONSTITUENCY BREAKDOWN ══ */
+    setProgress(28,'Constituency breakdown…');
+    checkY(14);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.muted);
+    doc.text('CONSTITUENCY BREAKDOWN', ML, y);
+    doc.setDrawColor(...C.border);
+    doc.line(ML+40, y-0.5, PAGE_W-MR, y-0.5);
+    y+=5;
+
+    const consts=['Manyatta','Runyenjes','Mbeere South','Mbeere North'];
+    const constData=consts.map(c=>{
+      const cw=Object.values(wardMap).filter(w=>w.constituency===c);
+      const total=cw.reduce((s,w)=>s+w.submissions,0);
+      const visited=cw.filter(w=>w.submissions>0).length;
+      const full=cw.filter(w=>w.submissions>=FULL_THRESHOLD).length;
+      const stations=cw.reduce((s,w)=>s+w.stations.size,0);
+      const pct=Math.round(visited/cw.length*100);
+      return[c, String(total), visited+' / '+cw.length, String(full), String(stations), pct+'%'];
+    });
+
+    doc.autoTable({
+      startY:y,
+      head:[['Constituency','Total Subs','Wards Visited','Fully Covered','Stations Hit','Coverage %']],
+      body:constData,
+      margin:{left:ML,right:MR},
+      styles:{fontSize:9,cellPadding:3,textColor:C.ink},
+      headStyles:{fillColor:C.forest,textColor:C.white,fontStyle:'bold',fontSize:8},
+      alternateRowStyles:{fillColor:[247,244,238]},
+      columnStyles:{
+        0:{fontStyle:'bold'},
+        1:{halign:'center'},2:{halign:'center'},
+        3:{halign:'center'},4:{halign:'center'},5:{halign:'center',fontStyle:'bold'},
+      },
+      didDrawPage:()=>addPageFooter(),
+    });
+    y=doc.lastAutoTable.finalY+8;
+
+    /* ══ WARD COVERAGE HEATMAP TABLE ══ */
+    setProgress(42,'Ward coverage table…');
+    checkY(14);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.muted);
+    doc.text('WARD COVERAGE HEATMAP', ML, y);
+    doc.setDrawColor(...C.border);
+    doc.line(ML+38, y-0.5, PAGE_W-MR, y-0.5);
+    y+=5;
+
+    const wardRows=ALL_WARDS.map(({ward,constituency})=>{
+      const w=wardMap[ward];
+      if(!w)return[ward,constituency,'0','0','0','Never','Not visited'];
+      const status=w.submissions===0?'Not visited':w.submissions>=FULL_THRESHOLD?'Covered':'Partial';
+      const last=w.lastVisit?w.lastVisit.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'Never';
+      return[ward,constituency,String(w.submissions),String(w.stations.size),String(w.researchers.size),last,status];
+    });
+
+    doc.autoTable({
+      startY:y,
+      head:[['Ward','Constituency','Submissions','Stations','Researchers','Last Visit','Status']],
+      body:wardRows,
+      margin:{left:ML,right:MR},
+      styles:{fontSize:8,cellPadding:2.5,textColor:C.ink},
+      headStyles:{fillColor:C.forest,textColor:C.white,fontStyle:'bold',fontSize:7.5},
+      alternateRowStyles:{fillColor:[247,244,238]},
+      columnStyles:{
+        0:{fontStyle:'bold',cellWidth:42},
+        1:{cellWidth:32},
+        2:{halign:'center',cellWidth:24},
+        3:{halign:'center',cellWidth:22},
+        4:{halign:'center',cellWidth:24},
+        5:{halign:'center',cellWidth:22},
+        6:{halign:'center',cellWidth:22},
+      },
+      didParseCell:(data)=>{
+        if(data.column.index===6&&data.section==='body'){
+          const v=data.cell.raw;
+          if(v==='Not visited'){data.cell.styles.textColor=C.red;data.cell.styles.fontStyle='bold';}
+          else if(v==='Partial'){data.cell.styles.textColor=C.amber;data.cell.styles.fontStyle='bold';}
+          else if(v==='Covered'){data.cell.styles.textColor=C.leaf;data.cell.styles.fontStyle='bold';}
+        }
+        if(data.column.index===2&&data.section==='body'){
+          const n=parseInt(data.cell.raw)||0;
+          if(n===0)data.cell.styles.textColor=C.red;
+          else if(n<FULL_THRESHOLD)data.cell.styles.textColor=C.amber;
+          else data.cell.styles.textColor=C.leaf;
+          data.cell.styles.fontStyle='bold';
+        }
+      },
+      didDrawPage:()=>addPageFooter(),
+    });
+    y=doc.lastAutoTable.finalY+8;
+
+    /* ══ COVERAGE GAPS TABLE ══ */
+    setProgress(56,'Coverage gaps analysis…');
+    checkY(14);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.muted);
+    doc.text('COVERAGE GAPS — WARDS NEEDING ATTENTION', ML, y);
+    doc.setDrawColor(...C.border);
+    doc.line(ML+60, y-0.5, PAGE_W-MR, y-0.5);
+    y+=5;
+
+    const noneWards=Object.values(wardMap).filter(w=>w.submissions===0).sort((a,b)=>a.constituency.localeCompare(b.constituency));
+    const partialWards=Object.values(wardMap).filter(w=>w.submissions>0&&w.submissions<FULL_THRESHOLD).sort((a,b)=>a.submissions-b.submissions);
+    const gapRows=[...noneWards,...partialWards].map((w,i)=>([
+      String(i+1),
+      w.ward,
+      w.constituency,
+      String(w.submissions),
+      String(Math.max(0,FULL_THRESHOLD-w.submissions))+' more',
+      w.submissions===0?'NOT VISITED':'PARTIAL',
+    ]));
+
+    if(gapRows.length===0){
+      doc.setFontSize(9);doc.setTextColor(...C.leaf);
+      doc.text('All 20 wards are covered!', ML, y+4);
+      y+=12;
+    }else{
+      doc.autoTable({
+        startY:y,
+        head:[['#','Ward','Constituency','Subs','Still Needed','Status']],
+        body:gapRows,
+        margin:{left:ML,right:MR},
+        styles:{fontSize:8.5,cellPadding:3,textColor:C.ink},
+        headStyles:{fillColor:[184,50,50],textColor:C.white,fontStyle:'bold',fontSize:8},
+        alternateRowStyles:{fillColor:[253,234,234]},
+        columnStyles:{
+          0:{halign:'center',cellWidth:10},
+          1:{fontStyle:'bold',cellWidth:45},
+          2:{cellWidth:35},
+          3:{halign:'center',cellWidth:18},
+          4:{halign:'center',cellWidth:28},
+          5:{halign:'center',fontStyle:'bold'},
+        },
+        didParseCell:(data)=>{
+          if(data.column.index===5&&data.section==='body'){
+            data.cell.styles.textColor=data.cell.raw==='NOT VISITED'?C.red:C.amber;
+          }
+        },
+        didDrawPage:()=>addPageFooter(),
+      });
+      y=doc.lastAutoTable.finalY+8;
+    }
+
+    /* ══ POLLING STATIONS ══ */
+    setProgress(68,'Polling station log…');
+    checkY(14);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.muted);
+    doc.text('POLLING STATION COVERAGE', ML, y);
+    doc.setDrawColor(...C.border);
+    doc.line(ML+42, y-0.5, PAGE_W-MR, y-0.5);
+    y+=5;
+
+    const stationMap={};
+    allDocs.forEach(d=>{
+      const ps=d.pollingStation;if(!ps||ps==='__other__')return;
+      const key=(d.ward||'?')+'||'+ps;
+      if(!stationMap[key])stationMap[key]={station:ps,ward:d.ward||'?',constituency:d.constituency||'?',count:0,researchers:new Set(),lastVisit:null};
+      stationMap[key].count++;
+      if(d._researcher)stationMap[key].researchers.add(d._researcher);
+      const ts=d._submittedAt?new Date(d._submittedAt):null;
+      if(ts&&(!stationMap[key].lastVisit||ts>stationMap[key].lastVisit))stationMap[key].lastVisit=ts;
+    });
+    const stationRows=Object.values(stationMap).sort((a,b)=>b.count-a.count).map((s,i)=>([
+      String(i+1),
+      s.station,
+      s.ward,
+      s.constituency,
+      s.count>=3?'Visited':s.count>0?'Partial':'Pending',
+      String(s.count),
+      String(s.researchers.size),
+      s.lastVisit?s.lastVisit.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'—',
+    ]));
+
+    if(!stationRows.length){
+      doc.setFontSize(9);doc.setTextColor(...C.muted2);
+      doc.text('No station data recorded yet.',ML,y+4);y+=12;
+    }else{
+      doc.autoTable({
+        startY:y,
+        head:[['#','Polling Station','Ward','Constituency','Status','Visits','Researchers','Last Visit']],
+        body:stationRows,
+        margin:{left:ML,right:MR},
+        styles:{fontSize:7.5,cellPadding:2.5,textColor:C.ink},
+        headStyles:{fillColor:C.forest,textColor:C.white,fontStyle:'bold',fontSize:7},
+        alternateRowStyles:{fillColor:[247,244,238]},
+        columnStyles:{
+          0:{halign:'center',cellWidth:8},
+          1:{fontStyle:'bold',cellWidth:42},
+          2:{cellWidth:35},
+          3:{cellWidth:28},
+          4:{halign:'center',cellWidth:18,fontStyle:'bold'},
+          5:{halign:'center',cellWidth:14},
+          6:{halign:'center',cellWidth:20},
+          7:{halign:'center',cellWidth:22},
+        },
+        didParseCell:(data)=>{
+          if(data.column.index===4&&data.section==='body'){
+            const v=data.cell.raw;
+            if(v==='Visited')data.cell.styles.textColor=C.leaf;
+            else if(v==='Partial')data.cell.styles.textColor=C.amber;
+            else data.cell.styles.textColor=C.muted2;
+          }
+        },
+        didDrawPage:()=>addPageFooter(),
+      });
+      y=doc.lastAutoTable.finalY+8;
+    }
+
+    /* ══ RESEARCHER ACTIVITY ══ */
+    setProgress(80,'Researcher activity…');
+    checkY(14);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.muted);
+    doc.text('RESEARCHER ACTIVITY SUMMARY', ML, y);
+    doc.setDrawColor(...C.border);
+    doc.line(ML+46, y-0.5, PAGE_W-MR, y-0.5);
+    y+=5;
+
+    const resMap={};
+    allDocs.forEach(d=>{
+      const r=d._researcher;if(!r)return;
+      if(!resMap[r])resMap[r]={name:r,login:d._researcherLogin||'—',total:0,wards:new Set(),stations:new Set(),lastSub:null};
+      resMap[r].total++;
+      if(d.ward)resMap[r].wards.add(d.ward);
+      if(d.pollingStation&&d.pollingStation!=='__other__')resMap[r].stations.add(d.pollingStation);
+      const ts=d._submittedAt?new Date(d._submittedAt):null;
+      if(ts&&(!resMap[r].lastSub||ts>resMap[r].lastSub))resMap[r].lastSub=ts;
+    });
+    const resRows=Object.values(resMap).sort((a,b)=>b.total-a.total).map((r,i)=>([
+      String(i+1),
+      r.name,
+      r.login,
+      String(r.total),
+      String(r.wards.size),
+      String(r.stations.size),
+      r.lastSub?r.lastSub.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'—',
+    ]));
+
+    if(!resRows.length){
+      doc.setFontSize(9);doc.setTextColor(...C.muted2);
+      doc.text('No researcher data.',ML,y+4);y+=12;
+    }else{
+      doc.autoTable({
+        startY:y,
+        head:[['#','Researcher','Login ID','Submissions','Wards','Stations','Last Activity']],
+        body:resRows,
+        margin:{left:ML,right:MR},
+        styles:{fontSize:8.5,cellPadding:3,textColor:C.ink},
+        headStyles:{fillColor:C.blue,textColor:C.white,fontStyle:'bold',fontSize:8},
+        alternateRowStyles:{fillColor:[232,240,251]},
+        columnStyles:{
+          0:{halign:'center',cellWidth:10},
+          1:{fontStyle:'bold',cellWidth:50},
+          2:{cellWidth:30},
+          3:{halign:'center',fontStyle:'bold',cellWidth:24},
+          4:{halign:'center',cellWidth:18},
+          5:{halign:'center',cellWidth:20},
+          6:{halign:'center',cellWidth:30},
+        },
+        didDrawPage:()=>addPageFooter(),
+      });
+      y=doc.lastAutoTable.finalY+8;
+    }
+
+    /* ══ FIELD PRIORITIES ══ */
+    setProgress(90,'Field priorities…');
+    checkY(14);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.muted);
+    doc.text('NEXT-VISIT FIELD PRIORITIES', ML, y);
+    doc.setDrawColor(...C.border);
+    doc.line(ML+44, y-0.5, PAGE_W-MR, y-0.5);
+    y+=5;
+
+    const prioRows=Object.values(wardMap).sort((a,b)=>{
+      if(a.submissions!==b.submissions)return a.submissions-b.submissions;
+      return a.constituency.localeCompare(b.constituency);
+    }).slice(0,10).map((w,i)=>{
+      const need=Math.max(0,FULL_THRESHOLD-w.submissions);
+      const priority=i<3?'CRITICAL':i<6?'HIGH':'MEDIUM';
+      const action=w.submissions===0?'Deploy immediately — zero visits':'Send enumerator — need '+need+' more sub'+(need!==1?'s':'');
+      return[String(i+1),w.ward,w.constituency,String(w.submissions),priority,action];
+    });
+
+    doc.autoTable({
+      startY:y,
+      head:[['Rank','Ward','Constituency','Subs','Priority','Recommended Action']],
+      body:prioRows,
+      margin:{left:ML,right:MR},
+      styles:{fontSize:8.5,cellPadding:3,textColor:C.ink},
+      headStyles:{fillColor:C.amber,textColor:C.white,fontStyle:'bold',fontSize:8},
+      alternateRowStyles:{fillColor:[254,243,216]},
+      columnStyles:{
+        0:{halign:'center',cellWidth:12},
+        1:{fontStyle:'bold',cellWidth:42},
+        2:{cellWidth:30},
+        3:{halign:'center',cellWidth:16},
+        4:{halign:'center',fontStyle:'bold',cellWidth:22},
+        5:{cellWidth:'auto'},
+      },
+      didParseCell:(data)=>{
+        if(data.column.index===4&&data.section==='body'){
+          const v=data.cell.raw;
+          if(v==='CRITICAL')data.cell.styles.textColor=C.red;
+          else if(v==='HIGH')data.cell.styles.textColor=C.amber;
+          else data.cell.styles.textColor=C.blue;
+        }
+      },
+      didDrawPage:()=>addPageFooter(),
+    });
+    y=doc.lastAutoTable.finalY+10;
+
+    /* ══ FINAL FOOTER ON LAST PAGE ══ */
+    setProgress(96,'Finalising…');
+    checkY(20);
+
+    doc.setFillColor(...C.forest);
+    doc.rect(ML,y,CW,14,'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.white);
+    doc.text('ECS-2026 · Embu County Social Study',ML+4,y+5.5);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...C.mint);
+    doc.text('Coverage Intelligence Report  ·  Confidential · Authorised Admin Use Only  ·  VisionTrack · Economic Survey International',ML+4,y+10.5);
+    doc.setTextColor(...C.gold);
+    doc.text(reportId,PAGE_W-MR,y+5.5,{align:'right'});
+    doc.setTextColor(...C.sage);
+    doc.text(now.toLocaleDateString('en-GB'),PAGE_W-MR,y+10.5,{align:'right'});
+
+    /* ══ SAVE ══ */
+    setProgress(100,'Saving PDF…');
+    const filename='ECS2026_Coverage_Report_'+now.toISOString().slice(0,10)+'.pdf';
+    doc.save(filename);
+
+    overlay.classList.remove('show');
+    toast('PDF saved: '+filename,'success');
+
+  }catch(err){
+    overlay.classList.remove('show');
+    toast('PDF error: '+err.message,'error');
+    console.error(err);
+  }
+}
+
+/* ══════════════════════════════════════════════
    UTILS
 ══════════════════════════════════════════════ */
 function esc(s){return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function goBack(){
-  // Try to go back in history, fallback to admin page
-  if(document.referrer&&document.referrer.includes('monitor')){
-    history.back();
-  }else{
-    window.location.href='monitor.html';
-  }
-}
-
-function refreshData(){
-  processData();// already have docs; or reload:
-  location.reload();
+  if(document.referrer&&document.referrer.includes('monitor'))history.back();
+  else window.location.href='monitor.html';
 }
 
 function exportCSV(){
@@ -1041,7 +1507,7 @@ function exportCSV(){
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download='embu_coverage_gaps_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
-  toast('✓ CSV exported','success');
+  toast('CSV exported','success');
 }
 
 let toastTimer;
