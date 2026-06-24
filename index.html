@@ -3,50 +3,1053 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Redirecting...</title>
-
-<!-- AUTO REDIRECT -->
-<meta http-equiv="refresh" content="0;url=register.html">
-
+<title>ECS-2026 · Coverage Intelligence Report</title>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background: #0f172a;
-    color: white;
-    font-family: Arial, sans-serif;
-    text-align: center;
+/* ── Reset ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+
+/* ── Tokens ── */
+:root{
+  --ink:#0c1a0e;
+  --forest:#1a4a2a;
+  --leaf:#2d7a45;
+  --mint:#4caf78;
+  --sage:#a8d5b5;
+  --cream:#f7f4ee;
+  --warm:#ede8df;
+  --gold:#c8963e;
+  --gold-lt:#f0d9a8;
+  --red:#b83232;
+  --red-l:#fdeaea;
+  --amber:#c87f2a;
+  --amber-l:#fef3d8;
+  --blue:#1a5ca8;
+  --blue-l:#e8f0fb;
+  --purple:#4a3eaa;
+  --purple-l:#eeedfb;
+  --border:#d6cfc2;
+  --border2:#c4bcb0;
+  --muted:#6b6055;
+  --muted2:#9a9088;
+  --r:8px;--r2:12px;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+  --serif:'Fraunces',serif;
 }
 
-.box {
-    background: #020617;
-    padding: 30px;
-    border-radius: 10px;
+body{
+  font-family:var(--sans);
+  background:var(--cream);
+  color:var(--ink);
+  font-size:14px;
+  line-height:1.6;
+  min-height:100vh;
 }
 
-a {
-    color: #22c55e;
-    text-decoration: none;
-    font-weight: bold;
+/* ── Login wall ── */
+#loginWall{
+  position:fixed;inset:0;
+  background:var(--forest);
+  z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+}
+.lw-card{
+  background:#fff;border-radius:16px;
+  padding:40px 36px;width:380px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.35);
+}
+.lw-icon{
+  width:52px;height:52px;
+  background:linear-gradient(135deg,var(--forest),var(--leaf));
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin:0 auto 16px;
+}
+.lw-title{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--forest);margin-bottom:4px;}
+.lw-sub{font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.5;}
+.lw-btn{
+  width:100%;padding:13px 20px;
+  border:1.5px solid var(--border);border-radius:var(--r);
+  background:#fff;font-family:var(--sans);font-size:14px;font-weight:600;
+  color:var(--ink);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:all .18s;
+}
+.lw-btn:hover{border-color:var(--leaf);background:#f0fdf4;}
+.lw-btn:disabled{opacity:.45;cursor:not-allowed;}
+.lw-err{color:var(--red);font-size:12px;margin-top:10px;display:none;
+  background:var(--red-l);border:1px solid rgba(184,50,50,.25);
+  border-radius:6px;padding:8px 12px;text-align:left;}
+.google-icon{width:20px;height:20px;flex-shrink:0;}
+.lw-spin{display:none;width:18px;height:18px;border:2px solid var(--border);
+  border-top-color:var(--leaf);border-radius:50%;
+  animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Screen toolbar ── */
+#screenToolbar{
+  background:var(--forest);color:#fff;
+  padding:0 28px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 12px rgba(0,0,0,.18);
+}
+.tb-brand{display:flex;align-items:center;gap:10px;}
+.tb-icon{
+  width:30px;height:30px;
+  background:rgba(255,255,255,.15);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.tb-name{font-weight:700;font-size:14px;color:#fff;}
+.tb-sub{font-size:10px;color:var(--sage);}
+.tb-actions{display:flex;gap:8px;align-items:center;}
+.tb-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:var(--r);
+  font-family:var(--sans);font-size:12px;font-weight:600;
+  cursor:pointer;border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.1);color:#fff;
+  transition:all .15s;white-space:nowrap;
+}
+.tb-btn:hover{background:rgba(255,255,255,.22);}
+.tb-btn.primary{background:var(--leaf);border-color:var(--leaf);color:#fff;}
+.tb-btn.primary:hover{background:var(--mint);}
+.tb-btn.gold{background:var(--gold);border-color:var(--gold);color:#fff;}
+.tb-btn.gold:hover{opacity:.88;}
+.tb-back{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--sage);cursor:pointer;
+  background:none;border:none;font-family:var(--sans);
+  padding:4px 0;transition:color .15s;
+}
+.tb-back:hover{color:#fff;}
+.admin-chip{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  border-radius:20px;padding:4px 10px 4px 4px;font-size:11px;color:var(--sage);
+}
+.admin-avatar{width:24px;height:24px;border-radius:50%;object-fit:cover;}
+.admin-name{font-weight:600;color:#fff;font-size:12px;}
+
+/* ── Page layout ── */
+.page{max-width:1200px;margin:0 auto;padding:28px 24px 80px;}
+
+/* ── Report header ── */
+.report-header{
+  background:var(--forest);border-radius:var(--r2);
+  padding:32px 36px;margin-bottom:24px;
+  position:relative;overflow:hidden;
+}
+.rh-bg{
+  position:absolute;right:-20px;top:-20px;
+  font-family:var(--serif);font-size:200px;font-weight:700;
+  color:rgba(255,255,255,.04);line-height:1;pointer-events:none;
+}
+.rh-eyebrow{
+  font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--sage);font-weight:500;margin-bottom:8px;
+}
+.rh-title{
+  font-family:var(--serif);font-size:28px;font-weight:700;
+  color:#fff;line-height:1.2;margin-bottom:6px;
+}
+.rh-title em{font-style:italic;color:var(--gold-lt);}
+.rh-meta{font-size:12px;color:var(--sage);margin-bottom:20px;}
+.rh-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.rh-pill{
+  font-size:11px;padding:4px 12px;border-radius:20px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  color:rgba(255,255,255,.85);
+}
+.rh-stamp{
+  position:absolute;right:36px;top:50%;transform:translateY(-50%);
+  text-align:right;
+}
+.rh-stamp-date{font-family:var(--mono);font-size:11px;color:var(--sage);}
+.rh-stamp-status{
+  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--mint);margin-top:4px;
+}
+
+/* ── Section heading ── */
+.sec-head{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:14px;margin-top:32px;
+}
+.sec-head:first-of-type{margin-top:0;}
+.sec-label{
+  font-size:10px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--muted);
+}
+.sec-head::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── KPI strip ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:24px;}
+.kpi{
+  background:#fff;border:1px solid var(--border);border-radius:var(--r2);
+  padding:14px 16px;position:relative;overflow:hidden;
+}
+.kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r2) var(--r2) 0 0;
+}
+.kpi-green::before{background:var(--leaf);}
+.kpi-red::before{background:var(--red);}
+.kpi-amber::before{background:var(--amber);}
+.kpi-blue::before{background:var(--blue);}
+.kpi-purple::before{background:var(--purple);}
+.kpi-gold::before{background:var(--gold);}
+.kpi-lbl{font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+.kpi-val{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1;color:var(--ink);}
+.kpi-val.green{color:var(--leaf);}
+.kpi-val.red{color:var(--red);}
+.kpi-val.amber{color:var(--amber);}
+.kpi-val.blue{color:var(--blue);}
+.kpi-val.purple{color:var(--purple);}
+.kpi-val.gold{color:var(--gold);}
+.kpi-sub{font-size:11px;color:var(--muted2);margin-top:4px;font-family:var(--mono);}
+
+/* ── Grid layouts ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:860px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+/* ── Card ── */
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;}
+.card-head{
+  padding:12px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(0,0,0,.015);
+}
+.card-title{font-weight:700;font-size:13px;color:var(--ink);}
+.card-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.card-body{padding:16px 18px;}
+.card-badge{
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  padding:3px 9px;border-radius:20px;white-space:nowrap;
+}
+.cb-green{background:rgba(45,122,69,.12);color:var(--leaf);}
+.cb-red{background:rgba(184,50,50,.12);color:var(--red);}
+.cb-amber{background:rgba(200,150,62,.15);color:var(--amber);}
+.cb-blue{background:rgba(26,92,168,.12);color:var(--blue);}
+
+/* ── Ward heatmap grid ── */
+.ward-heatmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:10px;}
+.wh-card{
+  background:#fff;border:1px solid var(--border);border-radius:var(--r);
+  padding:12px 14px;border-left:4px solid var(--border);
+  transition:border-color .15s;
+}
+.wh-card.wh-none{border-left-color:var(--red);}
+.wh-card.wh-low{border-left-color:var(--amber);}
+.wh-card.wh-mid{border-left-color:var(--gold);}
+.wh-card.wh-full{border-left-color:var(--leaf);}
+.wh-name{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+.wh-const{font-size:10px;color:var(--muted2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;}
+.wh-bar-track{height:5px;background:var(--warm);border-radius:3px;overflow:hidden;margin-bottom:7px;}
+.wh-bar-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.16,1,.3,1);}
+.wh-fill-none{background:var(--red);}
+.wh-fill-low{background:var(--amber);}
+.wh-fill-mid{background:var(--gold);}
+.wh-fill-full{background:var(--leaf);}
+.wh-stats{display:flex;gap:10px;font-size:10px;color:var(--muted);}
+.wh-stats strong{color:var(--ink);}
+.wh-badge{
+  float:right;margin-top:-2px;
+  font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;
+}
+.wh-badge-none{background:var(--red-l);color:var(--red);}
+.wh-badge-low{background:var(--amber-l);color:var(--amber);}
+.wh-badge-full{background:rgba(45,122,69,.12);color:var(--leaf);}
+
+/* ── Gap list ── */
+.gap-table{width:100%;border-collapse:collapse;}
+.gap-table th{
+  padding:8px 12px;background:var(--warm);
+  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--muted);text-align:left;border-bottom:1px solid var(--border);
+}
+.gap-table td{
+  padding:9px 12px;border-bottom:1px solid var(--border);
+  font-size:12px;color:var(--muted);vertical-align:middle;
+}
+.gap-table tr:last-child td{border-bottom:none;}
+.gap-table tr:hover td{background:var(--cream);}
+.gap-table td.main{color:var(--ink);font-weight:500;}
+.sev-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-right:6px;
+}
+.sev-high{background:var(--red);}
+.sev-med{background:var(--amber);}
+.sev-low{background:var(--leaf);}
+
+/* ── Priority list ── */
+.priority-list{display:flex;flex-direction:column;gap:8px;}
+.pr-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 14px;background:var(--cream);
+  border-radius:var(--r);border:1px solid var(--border);
+}
+.pr-rank{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;flex-shrink:0;
+}
+.pr-r1{background:var(--red-l);color:var(--red);}
+.pr-r2{background:var(--amber-l);color:var(--amber);}
+.pr-r3{background:var(--blue-l);color:var(--blue);}
+.pr-body{flex:1;}
+.pr-title{font-size:13px;font-weight:600;color:var(--ink);}
+.pr-const{font-size:10px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px;}
+.pr-detail{font-size:12px;color:var(--muted);line-height:1.5;}
+.pr-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.pr-pill{
+  font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;
+  background:rgba(26,92,168,.1);color:var(--blue);
+}
+
+/* ── Bar chart ── */
+.hbar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+.hbar-lbl{font-size:11px;color:var(--ink);width:130px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hbar-track{flex:1;height:14px;background:var(--warm);border-radius:3px;overflow:hidden;position:relative;}
+.hbar-fill{height:100%;border-radius:3px;position:absolute;left:0;top:0;transition:width .8s cubic-bezier(.16,1,.3,1);}
+.hbar-val{font-family:var(--mono);font-size:10px;color:var(--muted);width:40px;text-align:right;flex-shrink:0;}
+
+/* ── Constituency summary ── */
+.const-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.cc{
+  background:#fff;border:1px solid var(--border);border-radius:var(--r2);
+  overflow:hidden;
+}
+.cc-head{
+  padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.cc-head.th-forest{background:var(--forest);color:#fff;}
+.cc-head.th-leaf{background:var(--leaf);color:#fff;}
+.cc-head.th-gold{background:var(--gold);color:#fff;}
+.cc-head.th-blue{background:var(--blue);color:#fff;}
+.cc-name{font-weight:700;font-size:13px;}
+.cc-count{font-family:var(--mono);font-size:20px;font-weight:500;}
+.cc-body{padding:12px 14px;}
+.cc-stat-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;color:var(--muted);}
+.cc-stat-row strong{color:var(--ink);}
+.cc-progress{height:4px;background:var(--warm);border-radius:2px;overflow:hidden;margin-top:8px;}
+.cc-progress-fill{height:100%;border-radius:2px;background:var(--leaf);transition:width .8s;}
+
+/* ── Stations table ── */
+.stations-table{width:100%;border-collapse:collapse;font-size:11px;}
+.stations-table th{
+  padding:7px 10px;background:var(--warm);
+  font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--muted);text-align:left;border-bottom:1px solid var(--border);
+}
+.stations-table td{
+  padding:7px 10px;border-bottom:1px solid var(--border);
+  color:var(--muted);vertical-align:middle;
+}
+.stations-table tr:last-child td{border-bottom:none;}
+.stations-table td.main{color:var(--ink);font-weight:500;}
+.sp{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;
+}
+.sp-v{background:rgba(45,122,69,.12);color:var(--leaf);}
+.sp-p{background:var(--amber-l);color:var(--amber);}
+.sp-n{background:var(--red-l);color:var(--red);}
+
+/* ── Empty & loader ── */
+.loader-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:48px;gap:12px;
+}
+.loader-spin{
+  width:28px;height:28px;border:2.5px solid var(--border);
+  border-top-color:var(--leaf);border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+.loader-txt{font-size:12px;color:var(--muted);font-family:var(--mono);}
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:40px;gap:8px;
+  color:var(--muted2);font-size:13px;
+}
+
+/* ── Print report footer ── */
+.report-footer{
+  margin-top:40px;padding:16px 24px;
+  background:#fff;border:1px solid var(--border);border-radius:var(--r2);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;font-size:11px;color:var(--muted);
+}
+.rf-brand{font-family:var(--serif);font-size:14px;font-weight:600;color:var(--forest);}
+.rf-meta{font-family:var(--mono);font-size:10px;color:var(--muted2);}
+.rf-seal{
+  display:flex;align-items:center;gap:6px;
+  background:var(--cream);border:1px solid var(--border);border-radius:var(--r);
+  padding:6px 12px;font-size:10px;font-weight:700;color:var(--forest);
+}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:20px;right:20px;
+  background:var(--ink);color:#fff;
+  padding:10px 18px;border-radius:var(--r);font-size:12px;font-weight:600;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+  transform:translateY(60px);opacity:0;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:500;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:var(--leaf);}
+.toast.error{background:var(--red);}
+
+/* ══════════════════════════════════════════════
+   PRINT STYLES
+══════════════════════════════════════════════ */
+@media print{
+  #loginWall,#screenToolbar,.no-print{display:none!important;}
+  body{background:#fff!important;color:#000!important;font-size:11px;}
+  .page{padding:0!important;max-width:100%!important;}
+  .report-header{
+    background:var(--forest)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;
+    border-radius:0!important;margin-bottom:16px!important;padding:20px 24px!important;
+  }
+  .rh-stamp{display:none;}
+  .kpi-strip{grid-template-columns:repeat(6,1fr)!important;gap:6px!important;margin-bottom:14px!important;}
+  .kpi{padding:10px 12px!important;border-radius:4px!important;}
+  .kpi-val{font-size:20px!important;}
+  .ward-heatmap{grid-template-columns:repeat(4,1fr)!important;gap:6px!important;}
+  .wh-card{padding:8px 10px!important;border-radius:4px!important;}
+  .card{border:1px solid #ccc!important;border-radius:4px!important;break-inside:avoid;}
+  .card-head{background:#f5f5f5!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .sec-head{margin-top:16px!important;margin-bottom:8px!important;}
+  .grid-2,.grid-3{grid-template-columns:1fr 1fr!important;gap:8px!important;}
+  .const-cards{grid-template-columns:repeat(4,1fr)!important;gap:8px!important;}
+  .cc-head{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .priority-list .pr-item{background:#f9f9f9!important;padding:8px 10px!important;}
+  .report-footer{
+    border-top:2px solid var(--forest)!important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+    border-radius:0!important;margin-top:20px!important;
+  }
+  table{page-break-inside:auto;}
+  tr{page-break-inside:avoid;page-break-after:auto;}
+  thead{display:table-header-group;}
+  .hbar-fill{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .wh-bar-fill{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .kpi::before{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+
+  @page{margin:14mm 12mm;size:A4 portrait;}
+  @page:first{margin-top:6mm;}
+
+  /* Print page break hints */
+  .print-break-before{page-break-before:always;}
+  .no-break{page-break-inside:avoid;}
 }
 </style>
 </head>
-
 <body>
 
-<div class="box">
-    <h2>Redirecting...</h2>
-    <p>If you are not redirected automatically,</p>
-    <p><a href="register.html">Click here to continue</a></p>
+<!-- LOGIN WALL -->
+<div id="loginWall">
+  <div class="lw-card">
+    <div class="lw-icon">🗺️</div>
+    <div class="lw-title">Coverage Report</div>
+    <div class="lw-sub">ECS-2026 · Admin access only<br>Sign in with your authorised Google account</div>
+    <button class="lw-btn" id="lwBtn" onclick="adminSignIn()">
+      <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      <div class="lw-spin" id="lwSpin"></div>
+      <span id="lwTxt">Sign in with Google</span>
+    </button>
+    <div class="lw-err" id="lwErr"></div>
+  </div>
 </div>
 
-<!-- JS FALLBACK -->
-<script>
-window.location.href = "register.html";
-</script>
+<!-- SCREEN TOOLBAR (hidden during print) -->
+<div id="screenToolbar" class="no-print">
+  <div class="tb-brand">
+    <div class="tb-icon">🗺️</div>
+    <div>
+      <div class="tb-name">Coverage Intelligence Report</div>
+      <div class="tb-sub">ECS-2026 · Embu County Social Study</div>
+    </div>
+  </div>
+  <div class="tb-actions">
+    <button class="tb-btn" onclick="goBack()">← Back to Admin</button>
+    <button class="tb-btn" onclick="refreshData()">↻ Refresh</button>
+    <button class="tb-btn" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="tb-btn gold" onclick="window.print()">🖨 Print / Save PDF</button>
+    <div class="admin-chip" id="adminChip" style="display:none;">
+      <img class="admin-avatar" id="adminAvatar" src="" alt="">
+      <span class="admin-name" id="adminName"></span>
+    </div>
+  </div>
+</div>
 
+<!-- MAIN PAGE -->
+<div class="page">
+
+  <!-- Report Header -->
+  <div class="report-header">
+    <div class="rh-bg">ECS</div>
+    <div class="rh-eyebrow">Embu County Social Study · ECS-2026 · Field Operations</div>
+    <h1 class="rh-title">Coverage <em>Intelligence</em> Report</h1>
+    <div class="rh-meta" id="rhMeta">Generated: <span id="rhDate">—</span> · Loaded by: <span id="rhAdmin">—</span></div>
+    <div class="rh-pills">
+      <span class="rh-pill">📍 GPS-verified submissions</span>
+      <span class="rh-pill">🗺 20 wards · 4 constituencies</span>
+      <span class="rh-pill">🏫 Polling station tracking</span>
+      <span class="rh-pill">⚠ Uncovered area detection</span>
+    </div>
+    <div class="rh-stamp">
+      <div class="rh-stamp-date" id="stampDate">—</div>
+      <div class="rh-stamp-status" id="stampStatus">● LIVE DATA</div>
+    </div>
+  </div>
+
+  <!-- KPI Strip -->
+  <div class="sec-head"><span class="sec-label">Overview</span></div>
+  <div class="kpi-strip" id="kpiStrip">
+    <div class="kpi kpi-blue"><div class="kpi-lbl">Total Submissions</div><div class="kpi-val blue" id="kpi-total">—</div><div class="kpi-sub">all responses</div></div>
+    <div class="kpi kpi-green"><div class="kpi-lbl">Wards Visited</div><div class="kpi-val green" id="kpi-visited">—</div><div class="kpi-sub">of 20 total wards</div></div>
+    <div class="kpi kpi-green"><div class="kpi-lbl">Fully Covered</div><div class="kpi-val green" id="kpi-full">—</div><div class="kpi-sub">≥ 5 submissions</div></div>
+    <div class="kpi kpi-amber"><div class="kpi-lbl">Partial Coverage</div><div class="kpi-val amber" id="kpi-partial">—</div><div class="kpi-sub">1–4 submissions</div></div>
+    <div class="kpi kpi-red"><div class="kpi-lbl">Not Visited</div><div class="kpi-val red" id="kpi-none">—</div><div class="kpi-sub">zero submissions</div></div>
+    <div class="kpi kpi-purple"><div class="kpi-lbl">Coverage Rate</div><div class="kpi-val purple" id="kpi-pct">—</div><div class="kpi-sub">wards with ≥1 visit</div></div>
+    <div class="kpi kpi-gold"><div class="kpi-lbl">Stations Visited</div><div class="kpi-val gold" id="kpi-stations">—</div><div class="kpi-sub">unique polling stations</div></div>
+    <div class="kpi kpi-blue"><div class="kpi-lbl">Active Researchers</div><div class="kpi-val blue" id="kpi-researchers">—</div><div class="kpi-sub">unique enumerators</div></div>
+  </div>
+
+  <!-- Constituency Overview -->
+  <div class="sec-head"><span class="sec-label">Constituency Breakdown</span></div>
+  <div class="const-cards" id="constCards">
+    <div class="loader-wrap"><div class="loader-spin"></div><div class="loader-txt">Loading…</div></div>
+  </div>
+
+  <!-- Ward Heatmap -->
+  <div class="sec-head" style="margin-top:28px;"><span class="sec-label">Ward Coverage Heatmap — All 20 Wards</span></div>
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-head">
+      <div><div class="card-title">📍 Ward-level submission density</div><div class="card-sub">Green = well covered · Amber = partial · Red = not visited</div></div>
+      <div style="display:flex;gap:6px;align-items:center;font-size:10px;color:var(--muted);">
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--leaf);display:inline-block;"></span>Full</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--amber);display:inline-block;"></span>Partial</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;"></span>None</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="ward-heatmap" id="wardHeatmap">
+        <div class="loader-wrap"><div class="loader-spin"></div><div class="loader-txt">Building heatmap…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coverage bars + gap table side by side -->
+  <div class="grid-2 print-break-before">
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-title">📊 Submissions by ward</div><div class="card-sub">Top 20 — least covered first</div></div>
+      </div>
+      <div class="card-body">
+        <div id="wardBars"><div class="loader-wrap"><div class="loader-spin"></div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div><div class="card-title">⚠ Coverage gaps</div><div class="card-sub">Wards needing immediate attention</div></div>
+        <span class="card-badge cb-red" id="gapBadge">Analysing…</span>
+      </div>
+      <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
+        <table class="gap-table" id="gapTable">
+          <thead><tr><th></th><th>Ward</th><th>Constituency</th><th>Subs</th><th>Need</th><th>Status</th></tr></thead>
+          <tbody id="gapBody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted2);">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Polling Stations -->
+  <div class="sec-head print-break-before"><span class="sec-label">Polling Station Coverage</span></div>
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-head">
+      <div><div class="card-title">🏫 Station-level visit log</div><div class="card-sub">All submissions mapped to polling station</div></div>
+      <span class="card-badge cb-green" id="stationBadge">Loading…</span>
+    </div>
+    <div style="overflow-x:auto;max-height:380px;overflow-y:auto;">
+      <table class="stations-table" id="stationsTable">
+        <thead><tr><th>#</th><th>Polling station</th><th>Ward</th><th>Constituency</th><th>Status</th><th>Visits</th><th>Researchers</th><th>Last visit</th></tr></thead>
+        <tbody id="stationsBody"><tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted2);">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Next-visit priorities -->
+  <div class="sec-head print-break-before"><span class="sec-label">Next-Visit Field Priorities</span></div>
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">🎯 Top priority wards</div><div class="card-sub">Zero or fewest submissions — deploy here first</div></div></div>
+      <div class="card-body">
+        <div class="priority-list" id="priorityList">
+          <div class="loader-wrap"><div class="loader-spin"></div><div class="loader-txt">Calculating…</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">📅 Researcher activity summary</div><div class="card-sub">Who covered which wards</div></div></div>
+      <div class="card-body" style="max-height:400px;overflow-y:auto;">
+        <div id="resActivity"><div class="loader-wrap"><div class="loader-spin"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Footer -->
+  <div class="report-footer">
+    <div>
+      <div class="rf-brand">ECS-2026 · Embu County Social Study</div>
+      <div class="rf-meta">Coverage Intelligence Report · Generated <span id="footerDate">—</span> · Admin: <span id="footerAdmin">—</span></div>
+    </div>
+    <div class="rf-seal">🔒 Confidential · Authorised Admin Use Only</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);">
+      VisionTrack · Economic Survey International<br>
+      <span id="footerTimestamp">—</span>
+    </div>
+  </div>
+</div><!-- /.page -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════
+   FIREBASE CONFIG
+══════════════════════════════════════════════ */
+const firebaseConfig={
+  apiKey:"AIzaSyAXeNgPLKFgfxBKNta7UlGzHW-bjWzghas",
+  authDomain:"survey-842bd.firebaseapp.com",
+  projectId:"survey-842bd",
+  storageBucket:"survey-842bd.firebasestorage.app",
+  messagingSenderId:"916255795370",
+  appId:"1:916255795370:web:3f186720bf9e2b163dc8d3"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore(), auth=firebase.auth();
+
+const ADMIN_EMAILS=[
+  "admin@visiontrack.co.ke","supervisor@embu.go.ke","bettemanuel49@gmail.com",
+  "nicholaskasanga2@gmail.com","lenny.kivuti@geoafrica.com","senatorkivuti@gmail.com"
+];
+
+/* ══════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════ */
+async function adminSignIn(){
+  const btn=document.getElementById('lwBtn'),spin=document.getElementById('lwSpin'),txt=document.getElementById('lwTxt'),err=document.getElementById('lwErr');
+  btn.disabled=true;spin.style.display='inline-block';txt.textContent='Signing in…';err.style.display='none';
+  try{
+    const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+    await auth.signInWithPopup(p);
+  }catch(e){
+    btn.disabled=false;spin.style.display='none';txt.textContent='Sign in with Google';
+    err.textContent=e.code==='auth/popup-closed-by-user'?'Sign-in cancelled.':'Error: '+e.message;
+    err.style.display='block';
+  }
+}
+
+auth.onAuthStateChanged(async user=>{
+  if(!user){document.getElementById('loginWall').style.display='flex';return;}
+  const email=(user.email||'').toLowerCase();
+  if(!ADMIN_EMAILS.includes(email)){
+    const err=document.getElementById('lwErr');
+    err.textContent='⛔ Access denied for '+email;err.style.display='block';
+    document.getElementById('lwBtn').disabled=false;
+    document.getElementById('lwSpin').style.display='none';
+    document.getElementById('lwTxt').textContent='Sign in with Google';
+    await auth.signOut();return;
+  }
+  document.getElementById('loginWall').style.display='none';
+  const chip=document.getElementById('adminChip');chip.style.display='flex';
+  document.getElementById('adminName').textContent=user.displayName||email;
+  if(user.photoURL)document.getElementById('adminAvatar').src=user.photoURL;
+  document.getElementById('rhAdmin').textContent=user.displayName||email;
+  document.getElementById('footerAdmin').textContent=user.displayName||email;
+  const now=new Date();
+  document.getElementById('rhDate').textContent=now.toLocaleString();
+  document.getElementById('stampDate').textContent=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+  document.getElementById('footerDate').textContent=now.toLocaleString();
+  document.getElementById('footerTimestamp').textContent='Report ID: ECS-COV-'+Date.now();
+  loadData();
+});
+
+/* ══════════════════════════════════════════════
+   WARD / CONSTITUENCY MASTER DATA
+══════════════════════════════════════════════ */
+const ALL_WARDS=[
+  {ward:'Ruguru/Ngandori',constituency:'Manyatta'},
+  {ward:'Kithimu',constituency:'Manyatta'},
+  {ward:'Nginda',constituency:'Manyatta'},
+  {ward:'Mbeti North',constituency:'Manyatta'},
+  {ward:'Kirimari',constituency:'Manyatta'},
+  {ward:'Gaturi South',constituency:'Manyatta'},
+  {ward:'Gaturi North',constituency:'Runyenjes'},
+  {ward:'Kagaari South',constituency:'Runyenjes'},
+  {ward:'Kagaari North',constituency:'Runyenjes'},
+  {ward:'Central Ward',constituency:'Runyenjes'},
+  {ward:'Kyeni North',constituency:'Runyenjes'},
+  {ward:'Kyeni South',constituency:'Runyenjes'},
+  {ward:'Mwea',constituency:'Mbeere South'},
+  {ward:'Makima',constituency:'Mbeere South'},
+  {ward:'Mbeti South',constituency:'Mbeere South'},
+  {ward:'Mavuria',constituency:'Mbeere South'},
+  {ward:'Kiambere',constituency:'Mbeere South'},
+  {ward:'Nthawa',constituency:'Mbeere North'},
+  {ward:'Muminji',constituency:'Mbeere North'},
+  {ward:'Evurore',constituency:'Mbeere North'},
+];
+const CONST_THEMES={Manyatta:'th-forest',Runyenjes:'th-leaf','Mbeere South':'th-gold','Mbeere North':'th-blue'};
+const FULL_THRESHOLD=5;
+
+let allDocs=[], wardMap={};
+
+/* ══════════════════════════════════════════════
+   DATA LOAD
+══════════════════════════════════════════════ */
+async function loadData(){
+  toast('Loading field data…');
+  try{
+    let snap;
+    try{snap=await db.collection('responses').orderBy('_submittedAt','desc').get();}
+    catch(e){snap=await db.collection('responses').get();}
+    allDocs=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    processData();
+    toast('✓ Loaded '+allDocs.length+' submissions','success');
+  }catch(e){
+    toast('Error: '+e.message,'error');
+    // Use demo data so page still renders
+    useDemoData();
+  }
+}
+
+function useDemoData(){
+  const wardNames=ALL_WARDS.map(w=>w.ward);
+  const docs=[];
+  const counts=[12,9,8,7,6,5,4,3,3,2,2,1,1,0,0,0,0,0,0,0];
+  wardNames.forEach((ward,i)=>{
+    const n=counts[i]||0;
+    for(let j=0;j<n;j++){
+      docs.push({
+        ward,
+        constituency:ALL_WARDS[i].constituency,
+        pollingStation:ward+' PS '+(j%3+1),
+        _gpsLat:-0.55+(Math.random()*.4-.2),
+        _gpsLng:37.55+(Math.random()*.5-.25),
+        _submittedAt:new Date(Date.now()-Math.random()*14*86400000).toISOString(),
+        _researcher:['Alice Kamau','Bob Mwenda','Carol Njiru','David Mwangi','Eve Kimani'][j%5],
+        _researcherLogin:'ECS-RES-'+(1000+j%5),
+      });
+    }
+  });
+  allDocs=docs;
+  processData();
+  toast('Using demo data (Firestore offline)','error');
+}
+
+function processData(){
+  // Build ward map
+  wardMap={};
+  ALL_WARDS.forEach(w=>{
+    wardMap[w.ward]={
+      ward:w.ward,constituency:w.constituency,
+      submissions:0,stations:new Set(),researchers:new Set(),
+      lastVisit:null,gpsPoints:[],docs:[]
+    };
+  });
+  allDocs.forEach(d=>{
+    const w=d.ward;if(!w||!wardMap[w])return;
+    wardMap[w].submissions++;
+    if(d.pollingStation&&d.pollingStation!=='__other__') wardMap[w].stations.add(d.pollingStation);
+    if(d._researcher) wardMap[w].researchers.add(d._researcher);
+    const ts=d._submittedAt?new Date(d._submittedAt):null;
+    if(ts&&(!wardMap[w].lastVisit||ts>wardMap[w].lastVisit))wardMap[w].lastVisit=ts;
+    if(d._gpsLat&&d._gpsLng)wardMap[w].gpsPoints.push([d._gpsLat,d._gpsLng]);
+    wardMap[w].docs.push(d);
+  });
+  renderAll();
+}
+
+/* ══════════════════════════════════════════════
+   RENDER ALL SECTIONS
+══════════════════════════════════════════════ */
+function renderAll(){
+  renderKPIs();
+  renderConstCards();
+  renderWardHeatmap();
+  renderWardBars();
+  renderGapTable();
+  renderStationsTable();
+  renderPriorities();
+  renderResActivity();
+}
+
+/* ── KPIs ── */
+function renderKPIs(){
+  const vals=Object.values(wardMap);
+  const total=allDocs.length;
+  const visited=vals.filter(w=>w.submissions>0).length;
+  const full=vals.filter(w=>w.submissions>=FULL_THRESHOLD).length;
+  const partial=vals.filter(w=>w.submissions>0&&w.submissions<FULL_THRESHOLD).length;
+  const none=vals.filter(w=>w.submissions===0).length;
+  const pct=Math.round(visited/vals.length*100)+'%';
+  const stations=vals.reduce((s,w)=>s+w.stations.size,0);
+  const researchers=new Set(allDocs.map(d=>d._researcher).filter(Boolean)).size;
+  const ids={
+    'kpi-total':total,'kpi-visited':visited,'kpi-full':full,
+    'kpi-partial':partial,'kpi-none':none,'kpi-pct':pct,
+    'kpi-stations':stations,'kpi-researchers':researchers
+  };
+  Object.entries(ids).forEach(([id,val])=>{
+    const el=document.getElementById(id);if(el)el.textContent=val;
+  });
+}
+
+/* ── Constituency cards ── */
+function renderConstCards(){
+  const consts=['Manyatta','Runyenjes','Mbeere South','Mbeere North'];
+  const totalMax=Math.max(...consts.map(c=>Object.values(wardMap).filter(w=>w.constituency===c).reduce((s,w)=>s+w.submissions,0)),1);
+  document.getElementById('constCards').innerHTML=consts.map(c=>{
+    const wards=Object.values(wardMap).filter(w=>w.constituency===c);
+    const total=wards.reduce((s,w)=>s+w.submissions,0);
+    const visited=wards.filter(w=>w.submissions>0).length;
+    const full=wards.filter(w=>w.submissions>=FULL_THRESHOLD).length;
+    const stations=wards.reduce((s,w)=>s+w.stations.size,0);
+    const pct=Math.round(visited/wards.length*100);
+    const theme=CONST_THEMES[c]||'th-forest';
+    return`<div class="cc no-break">
+      <div class="cc-head ${theme}">
+        <div class="cc-name">${esc(c)}</div>
+        <div class="cc-count">${total}</div>
+      </div>
+      <div class="cc-body">
+        <div class="cc-stat-row"><span>Wards visited</span><strong>${visited} / ${wards.length}</strong></div>
+        <div class="cc-stat-row"><span>Fully covered</span><strong>${full}</strong></div>
+        <div class="cc-stat-row"><span>Stations hit</span><strong>${stations}</strong></div>
+        <div class="cc-stat-row"><span>Coverage rate</span><strong>${pct}%</strong></div>
+        <div class="cc-progress"><div class="cc-progress-fill" style="width:${pct}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Ward heatmap ── */
+function renderWardHeatmap(){
+  const vals=Object.values(wardMap);
+  const maxSubs=Math.max(...vals.map(w=>w.submissions),1);
+  document.getElementById('wardHeatmap').innerHTML=ALL_WARDS.map(({ward,constituency})=>{
+    const w=wardMap[ward];if(!w)return'';
+    const pct=Math.round(w.submissions/maxSubs*100);
+    let cls,fillCls,badgeCls,badgeLbl;
+    if(w.submissions===0){cls='wh-none';fillCls='wh-fill-none';badgeCls='wh-badge-none';badgeLbl='Not visited';}
+    else if(w.submissions>=FULL_THRESHOLD){cls='wh-full';fillCls='wh-fill-full';badgeCls='wh-badge-full';badgeLbl='Covered';}
+    else{cls='wh-low';fillCls='wh-fill-low';badgeCls='wh-badge-low';badgeLbl='Partial';}
+    const last=w.lastVisit?w.lastVisit.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'Never';
+    return`<div class="wh-card ${cls} no-break">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">
+        <div class="wh-name">${esc(ward)}</div>
+        <span class="wh-badge ${badgeCls}">${badgeLbl}</span>
+      </div>
+      <div class="wh-const">${esc(constituency)}</div>
+      <div class="wh-bar-track"><div class="wh-bar-fill ${fillCls}" style="width:${pct}%"></div></div>
+      <div class="wh-stats">
+        <span><strong>${w.submissions}</strong> subs</span>
+        <span><strong>${w.stations.size}</strong> stn</span>
+        <span>Last: <strong>${last}</strong></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Ward bars ── */
+function renderWardBars(){
+  const sorted=Object.values(wardMap).sort((a,b)=>a.submissions-b.submissions);
+  const maxSubs=Math.max(...sorted.map(w=>w.submissions),1);
+  document.getElementById('wardBars').innerHTML=sorted.map(w=>{
+    const pct=Math.round(w.submissions/maxSubs*100);
+    const color=w.submissions===0?'var(--red)':w.submissions>=FULL_THRESHOLD?'var(--leaf)':'var(--amber)';
+    return`<div class="hbar-row">
+      <div class="hbar-lbl" title="${esc(w.ward)}">${esc(w.ward)}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${pct}%;background:${color};"></div></div>
+      <div class="hbar-val">${w.submissions}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Gap table ── */
+function renderGapTable(){
+  const none=Object.values(wardMap).filter(w=>w.submissions===0).sort((a,b)=>a.constituency.localeCompare(b.constituency));
+  const partial=Object.values(wardMap).filter(w=>w.submissions>0&&w.submissions<FULL_THRESHOLD).sort((a,b)=>a.submissions-b.submissions);
+  const all=[...none,...partial];
+  document.getElementById('gapBadge').textContent=(none.length+partial.length)+' gaps';
+  document.getElementById('gapBadge').className='card-badge '+(none.length>0?'cb-red':'cb-amber');
+  if(!all.length){
+    document.getElementById('gapBody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--leaf);font-weight:600;">✅ All wards covered!</td></tr>';
+    return;
+  }
+  document.getElementById('gapBody').innerHTML=all.map((w,i)=>{
+    const isNone=w.submissions===0;
+    const need=Math.max(0,FULL_THRESHOLD-w.submissions);
+    const sevCls=isNone?'sev-high':'sev-med';
+    const statusPill=isNone?'<span class="sp sp-n">Not visited</span>':'<span class="sp sp-p">Partial</span>';
+    return`<tr>
+      <td><span class="sev-dot ${sevCls}"></span>${i+1}</td>
+      <td class="main">${esc(w.ward)}</td>
+      <td>${esc(w.constituency)}</td>
+      <td style="font-family:var(--mono);font-weight:600;color:${isNone?'var(--red)':'var(--amber)'};">${w.submissions}</td>
+      <td style="font-family:var(--mono);color:var(--muted);">${need} more</td>
+      <td>${statusPill}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Stations table ── */
+function renderStationsTable(){
+  const stationMap={};
+  allDocs.forEach(d=>{
+    const ps=d.pollingStation;if(!ps||ps==='__other__')return;
+    const ward=d.ward||'Unknown';
+    const key=ward+'||'+ps;
+    if(!stationMap[key])stationMap[key]={station:ps,ward,constituency:d.constituency||'Unknown',count:0,researchers:new Set(),lastVisit:null};
+    stationMap[key].count++;
+    if(d._researcher)stationMap[key].researchers.add(d._researcher);
+    const ts=d._submittedAt?new Date(d._submittedAt):null;
+    if(ts&&(!stationMap[key].lastVisit||ts>stationMap[key].lastVisit))stationMap[key].lastVisit=ts;
+  });
+  const stations=Object.values(stationMap).sort((a,b)=>b.count-a.count);
+  document.getElementById('stationBadge').textContent=stations.length+' unique stations';
+  document.getElementById('stationBadge').className='card-badge cb-green';
+  if(!stations.length){
+    document.getElementById('stationsBody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted2);">No station data recorded yet</td></tr>';
+    return;
+  }
+  document.getElementById('stationsBody').innerHTML=stations.map((s,i)=>{
+    const pill=s.count>=3?'<span class="sp sp-v">Visited</span>':s.count>0?'<span class="sp sp-p">Partial</span>':'<span class="sp sp-n">Pending</span>';
+    const last=s.lastVisit?s.lastVisit.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}):'—';
+    return`<tr>
+      <td style="color:var(--muted2);">${i+1}</td>
+      <td class="main">${esc(s.station)}</td>
+      <td>${esc(s.ward)}</td>
+      <td>${esc(s.constituency)}</td>
+      <td>${pill}</td>
+      <td style="font-family:var(--mono);font-weight:600;color:${s.count>0?'var(--leaf)':'var(--muted2)'};">${s.count}</td>
+      <td style="font-family:var(--mono);">${s.researchers.size}</td>
+      <td style="font-size:10px;color:var(--muted2);">${last}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Priority list ── */
+function renderPriorities(){
+  const sorted=Object.values(wardMap).sort((a,b)=>{
+    if(a.submissions!==b.submissions)return a.submissions-b.submissions;
+    return a.constituency.localeCompare(b.constituency);
+  }).slice(0,10);
+  const rankCls=['pr-r1','pr-r1','pr-r1','pr-r2','pr-r2','pr-r2','pr-r3','pr-r3','pr-r3','pr-r3'];
+  document.getElementById('priorityList').innerHTML=sorted.map((w,i)=>{
+    const isNone=w.submissions===0;
+    const need=Math.max(0,FULL_THRESHOLD-w.submissions);
+    const action=isNone?'Deploy enumerator immediately — zero visits recorded.':'Send 1–2 enumerators for top-up. '+need+' more submission'+(need!==1?'s':'')+' needed.';
+    const stns=[...w.stations].slice(0,3).map(s=>`<span class="pr-pill">${esc(s)}</span>`).join('');
+    return`<div class="pr-item no-break">
+      <div class="pr-rank ${rankCls[i]}">${i+1}</div>
+      <div class="pr-body">
+        <div class="pr-title">${esc(w.ward)}</div>
+        <div class="pr-const">${esc(w.constituency)} · ${w.submissions} submission${w.submissions!==1?'s':''}</div>
+        <div class="pr-detail">${action}</div>
+        ${stns?'<div class="pr-pills">Visited: '+stns+'</div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Researcher activity ── */
+function renderResActivity(){
+  const resMap={};
+  allDocs.forEach(d=>{
+    const r=d._researcher;if(!r)return;
+    if(!resMap[r])resMap[r]={name:r,login:d._researcherLogin||'—',total:0,wards:new Set(),stations:new Set(),lastSub:null};
+    resMap[r].total++;
+    if(d.ward)resMap[r].wards.add(d.ward);
+    if(d.pollingStation&&d.pollingStation!=='__other__')resMap[r].stations.add(d.pollingStation);
+    const ts=d._submittedAt?new Date(d._submittedAt):null;
+    if(ts&&(!resMap[r].lastSub||ts>resMap[r].lastSub))resMap[r].lastSub=ts;
+  });
+  const sorted=Object.values(resMap).sort((a,b)=>b.total-a.total);
+  const maxTotal=Math.max(...sorted.map(r=>r.total),1);
+  if(!sorted.length){document.getElementById('resActivity').innerHTML='<div class="empty-state">No researcher data</div>';return;}
+  document.getElementById('resActivity').innerHTML=sorted.map(r=>{
+    const pct=Math.round(r.total/maxTotal*100);
+    const last=r.lastSub?r.lastSub.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—';
+    return`<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--ink);">${esc(r.name)}</div>
+          <div style="font-size:10px;color:var(--muted2);font-family:var(--mono);">${esc(r.login)} · ${r.wards.size} ward${r.wards.size!==1?'s':''} · last: ${last}</div>
+        </div>
+        <span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--leaf);">${r.total}</span>
+      </div>
+      <div class="hbar-track" style="height:8px;">
+        <div class="hbar-fill" style="width:${pct}%;background:var(--leaf);"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+function esc(s){return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function goBack(){
+  // Try to go back in history, fallback to admin page
+  if(document.referrer&&document.referrer.includes('monitor')){
+    history.back();
+  }else{
+    window.location.href='monitor.html';
+  }
+}
+
+function refreshData(){
+  processData();// already have docs; or reload:
+  location.reload();
+}
+
+function exportCSV(){
+  const rows=[['Ward','Constituency','Submissions','Stations Visited','Researchers','Last Visit','Status','Needs (to reach target)']];
+  Object.values(wardMap).sort((a,b)=>a.submissions-b.submissions).forEach(w=>{
+    const status=w.submissions===0?'Not visited':w.submissions>=FULL_THRESHOLD?'Well covered':'Partial';
+    const last=w.lastVisit?w.lastVisit.toISOString().slice(0,10):'—';
+    const need=Math.max(0,FULL_THRESHOLD-w.submissions);
+    rows.push([w.ward,w.constituency,w.submissions,w.stations.size,w.researchers.size,last,status,need]);
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='embu_coverage_gaps_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  toast('✓ CSV exported','success');
+}
+
+let toastTimer;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast show'+(type?' '+type:'');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3500);
+}
+</script>
 </body>
 </html>
